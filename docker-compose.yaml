@@ -1,0 +1,38 @@
+include:
+  - docker-compose-deps.yaml
+
+services:
+
+  backend:
+    container_name: backend
+    build:
+      context: ./src/back-end
+      dockerfile: ./Backend.dockerfile
+    environment:
+      # These values are VERBATIM, do not include quotes unless they are needed in the actual value
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5000
+      # Needed as an override of default appsettings
+      - ConnectionStrings__RedisCache=redis:6379,password=,ssl=False,abortConnect=False
+      # This is a developer secret and commonly available with the default SQL Server image
+      # We should never commit real secrets to source control
+      - ConnectionStrings__SqlServer=Server=sqlserver;Database=todo;User=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;
+    ports:
+      - "5000:5000"
+    depends_on:
+      - migrations
+      - redis
+      - sqlserver
+
+  frontend:
+    container_name: frontend
+    build:
+      context: ./src/front-end
+      dockerfile: ./Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      # These values are VERBATIM, do not include quotes unless they are needed in the actual value
+      - REACT_APP_BACKEND_BASE_URL=http://localhost:5000/api
+    depends_on:
+      - backend
